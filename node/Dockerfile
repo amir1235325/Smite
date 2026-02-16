@@ -15,43 +15,60 @@ RUN apt-get update && apt-get install -y \
 
 # Stage 2: Install rathole (cached layer)
 FROM base AS rathole-bin
-ARG TARGETPLATFORM
+ARG TARGETPLATFORM=linux/amd64
 ARG BUILDPLATFORM
 RUN set -eux; \
-    ARCH_RAW="$(echo ${TARGETPLATFORM} | cut -d'/' -f2)"; \
+    if [ -n "$TARGETPLATFORM" ]; then \
+        ARCH_RAW="$(echo ${TARGETPLATFORM} | cut -d'/' -f2)"; \
+    else \
+        ARCH_RAW="$(uname -m)"; \
+    fi; \
     case "$ARCH_RAW" in \
         amd64|x86_64) ARCH="amd64"; RATHOLE_ARCH="x86_64" ;; \
         arm64|aarch64) ARCH="arm64"; RATHOLE_ARCH="aarch64" ;; \
         *) ARCH="amd64"; RATHOLE_ARCH="x86_64" ;; \
     esac; \
+    echo "Detected architecture: $ARCH (RATHOLE_ARCH: $RATHOLE_ARCH)"; \
+    echo "Fetching rathole..."; \
     RATHOLE_URL="https://github.com/rapiz1/rathole/releases/download/v0.5.0/rathole-$RATHOLE_ARCH-unknown-linux-gnu.zip"; \
     TMP_DIR="$(mktemp -d)"; \
-    curl -fsSL "$RATHOLE_URL" -o "$TMP_DIR/rathole.zip"; \
-    unzip -q "$TMP_DIR/rathole.zip" -d "$TMP_DIR"; \
+    curl -fL "$RATHOLE_URL" -o "$TMP_DIR/rathole.zip" || { echo "Failed to download rathole from $RATHOLE_URL"; exit 1; }; \
+    unzip -q "$TMP_DIR/rathole.zip" -d "$TMP_DIR" || { echo "Failed to unzip rathole"; exit 1; }; \
     RATHOLE_BIN="$(find "$TMP_DIR" -type f -name 'rathole' | head -n1)"; \
+    if [ -z "$RATHOLE_BIN" ]; then \
+        echo "Rathole binary not found in archive"; \
+        ls -la "$TMP_DIR"; \
+        exit 1; \
+    fi; \
     install -Dm755 "$RATHOLE_BIN" /usr/local/bin/rathole; \
     rm -rf "$TMP_DIR"; \
+    echo "Fetching GOST..."; \
     GOST_URL="https://github.com/ginuerzh/gost/releases/download/v2.12.0/gost_2.12.0_linux_${ARCH}.tar.gz"; \
     GOST_TMP="$(mktemp -d)"; \
-    curl -fsSL "$GOST_URL" -o "$GOST_TMP/gost.tar.gz"; \
-    tar -xzf "$GOST_TMP/gost.tar.gz" -C "$GOST_TMP"; \
+    curl -fL "$GOST_URL" -o "$GOST_TMP/gost.tar.gz" || { echo "Failed to download GOST from $GOST_URL"; exit 1; }; \
+    tar -xzf "$GOST_TMP/gost.tar.gz" -C "$GOST_TMP" || { echo "Failed to extract GOST"; exit 1; }; \
     GOST_BIN="$(find "$GOST_TMP" -type f -name 'gost' | head -n1)"; \
+    if [ -z "$GOST_BIN" ]; then \
+        echo "GOST binary not found in archive"; \
+        ls -la "$GOST_TMP"; \
+        exit 1; \
+    fi; \
     install -Dm755 "$GOST_BIN" /usr/local/bin/gost; \
     rm -rf "$GOST_TMP"; \
-    echo "Fetching chisel release"; \
+    echo "Fetching chisel..."; \
     CHISEL_URL="https://github.com/jpillora/chisel/releases/download/v1.11.3/chisel_1.11.3_linux_${ARCH}.gz"; \
     CHISEL_TMP="$(mktemp -d)"; \
-    curl -fsSL "$CHISEL_URL" -o "$CHISEL_TMP/chisel.gz"; \
-    gunzip "$CHISEL_TMP/chisel.gz"; \
+    curl -fL "$CHISEL_URL" -o "$CHISEL_TMP/chisel.gz" || { echo "Failed to download Chisel from $CHISEL_URL"; exit 1; }; \
+    gunzip "$CHISEL_TMP/chisel.gz" || { echo "Failed to gunzip Chisel"; exit 1; }; \
     install -Dm755 "$CHISEL_TMP/chisel" /usr/local/bin/chisel; \
     rm -rf "$CHISEL_TMP"; \
-    echo "Fetching FRP release"; \
+    echo "Fetching FRP..."; \
     FRP_VERSION="v0.65.0"; \
     FRP_VERSION_NO_V="${FRP_VERSION#v}"; \
     FRP_URL="https://github.com/fatedier/frp/releases/download/${FRP_VERSION}/frp_${FRP_VERSION_NO_V}_linux_${ARCH}.tar.gz"; \
     FRP_TMP="$(mktemp -d)"; \
-    curl -fsSL "$FRP_URL" -o "$FRP_TMP/frp.tar.gz"; \
-    tar -xzf "$FRP_TMP/frp.tar.gz" -C "$FRP_TMP"; \
+    curl -fL "$FRP_URL" -o "$FRP_TMP/frp.tar.gz" || { echo "Failed to download FRP from $FRP_URL"; exit 1; }; \
+    tar -xzf "$FRP_TMP/frp.tar.gz" -C "$FRP_TMP" || { echo "Failed to extract FRP"; exit 1; }; \
     FRPC_BIN="$(find "$FRP_TMP" -type f -name 'frpc' | head -n1)"; \
     if [ -n "$FRPC_BIN" ]; then \
         install -Dm755 "$FRPC_BIN" /usr/local/bin/frpc; \
@@ -69,19 +86,24 @@ RUN set -eux; \
 
 # Stage 3: Install backhaul (cached layer)
 FROM base AS backhaul-bin
-ARG TARGETPLATFORM
+ARG TARGETPLATFORM=linux/amd64
 ARG BUILDPLATFORM
 ARG BACKHAUL_VERSION
 ARG BACKHAUL_SHA256_AMD64
 ARG BACKHAUL_SHA256_ARM64
 RUN set -eux; \
     mkdir -p /opt/backhaul; \
-    ARCH_RAW="$(echo ${TARGETPLATFORM} | cut -d'/' -f2)"; \
+    if [ -n "$TARGETPLATFORM" ]; then \
+        ARCH_RAW="$(echo ${TARGETPLATFORM} | cut -d'/' -f2)"; \
+    else \
+        ARCH_RAW="$(uname -m)"; \
+    fi; \
     case "$ARCH_RAW" in \
         amd64|x86_64) PLATFORM="amd64"; EXPECTED_SHA="$BACKHAUL_SHA256_AMD64" ;; \
         arm64|aarch64) PLATFORM="arm64"; EXPECTED_SHA="$BACKHAUL_SHA256_ARM64" ;; \
         *) echo "Unsupported architecture: $ARCH_RAW"; exit 1 ;; \
     esac; \
+    echo "Detected architecture: $PLATFORM"; \
     ASSET_URL="https://github.com/Musixal/Backhaul/releases/download/${BACKHAUL_VERSION}/backhaul_linux_${PLATFORM}.tar.gz"; \
     TMP_DIR="$(mktemp -d)"; \
     curl -fsSL "$ASSET_URL" -o "$TMP_DIR/backhaul.tar.gz"; \

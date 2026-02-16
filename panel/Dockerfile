@@ -10,15 +10,20 @@ RUN apt-get update && apt-get install -y \
 
 # Stage: Install FRP binaries
 FROM base AS frp-bin
-ARG TARGETPLATFORM
+ARG TARGETPLATFORM=linux/amd64
 ARG BUILDPLATFORM
 RUN set -eux; \
-    ARCH_RAW="$(echo ${TARGETPLATFORM} | cut -d'/' -f2)"; \
+    if [ -n "$TARGETPLATFORM" ]; then \
+        ARCH_RAW="$(echo ${TARGETPLATFORM} | cut -d'/' -f2)"; \
+    else \
+        ARCH_RAW="$(uname -m)"; \
+    fi; \
     case "$ARCH_RAW" in \
         amd64|x86_64) ARCH="amd64" ;; \
         arm64|aarch64) ARCH="arm64" ;; \
         *) ARCH="amd64" ;; \
     esac; \
+    echo "Detected architecture: $ARCH"; \
     echo "Fetching FRP release"; \
     FRP_VERSION="v0.65.0"; \
     FRP_VERSION_NO_V="${FRP_VERSION#v}"; \
