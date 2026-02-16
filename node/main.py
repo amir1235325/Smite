@@ -12,6 +12,7 @@ from app.config import settings
 from app.routers import agent
 from app.panel_client import PanelClient
 from app.core_adapters import AdapterManager
+from app.load_balancer_manager import LoadBalancerManager
 
 logging.basicConfig(
     level=logging.INFO,
@@ -58,6 +59,9 @@ async def lifespan(app: FastAPI):
     
     adapter_manager = AdapterManager()
     app.state.adapter_manager = adapter_manager
+    
+    load_balancer_manager = LoadBalancerManager()
+    app.state.load_balancer_manager = load_balancer_manager
     
     try:
         await adapter_manager.restore_tunnels()

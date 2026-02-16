@@ -47,6 +47,27 @@ async def migrate_db():
             await conn.execute(text(
                 "ALTER TABLE tunnels ADD COLUMN iran_node_id VARCHAR"
             ))
+        
+        # Check if load_balancers table exists
+        result = await conn.execute(text(
+            "SELECT name FROM sqlite_master WHERE type='table' AND name='load_balancers'"
+        ))
+        if not result.scalar():
+            logger.info("Creating load_balancers table")
+            await conn.execute(text("""
+                CREATE TABLE load_balancers (
+                    id VARCHAR PRIMARY KEY,
+                    name VARCHAR NOT NULL,
+                    iran_node_id VARCHAR NOT NULL,
+                    tunnel_ids TEXT NOT NULL,
+                    listen_port INTEGER NOT NULL,
+                    algorithm VARCHAR DEFAULT 'round_robin',
+                    status VARCHAR DEFAULT 'pending',
+                    error_message TEXT,
+                    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+                )
+            """))
 
 
 async def init_db():

@@ -15,11 +15,13 @@ RUN apt-get update && apt-get install -y \
 
 # Stage 2: Install rathole (cached layer)
 FROM base AS rathole-bin
+ARG TARGETPLATFORM
+ARG BUILDPLATFORM
 RUN set -eux; \
-    ARCH_RAW="$(uname -m)"; \
+    ARCH_RAW="$(echo ${TARGETPLATFORM} | cut -d'/' -f2)"; \
     case "$ARCH_RAW" in \
-        x86_64) ARCH="amd64"; RATHOLE_ARCH="x86_64" ;; \
-        aarch64) ARCH="arm64"; RATHOLE_ARCH="aarch64" ;; \
+        amd64|x86_64) ARCH="amd64"; RATHOLE_ARCH="x86_64" ;; \
+        arm64|aarch64) ARCH="arm64"; RATHOLE_ARCH="aarch64" ;; \
         *) ARCH="amd64"; RATHOLE_ARCH="x86_64" ;; \
     esac; \
     RATHOLE_URL="https://github.com/rapiz1/rathole/releases/download/v0.5.0/rathole-$RATHOLE_ARCH-unknown-linux-gnu.zip"; \
@@ -67,16 +69,18 @@ RUN set -eux; \
 
 # Stage 3: Install backhaul (cached layer)
 FROM base AS backhaul-bin
+ARG TARGETPLATFORM
+ARG BUILDPLATFORM
 ARG BACKHAUL_VERSION
 ARG BACKHAUL_SHA256_AMD64
 ARG BACKHAUL_SHA256_ARM64
 RUN set -eux; \
     mkdir -p /opt/backhaul; \
-    ARCH="$(uname -m)"; \
-    case "$ARCH" in \
-        x86_64|amd64) PLATFORM="amd64"; EXPECTED_SHA="$BACKHAUL_SHA256_AMD64" ;; \
-        aarch64|arm64) PLATFORM="arm64"; EXPECTED_SHA="$BACKHAUL_SHA256_ARM64" ;; \
-        *) echo "Unsupported architecture: $ARCH"; exit 1 ;; \
+    ARCH_RAW="$(echo ${TARGETPLATFORM} | cut -d'/' -f2)"; \
+    case "$ARCH_RAW" in \
+        amd64|x86_64) PLATFORM="amd64"; EXPECTED_SHA="$BACKHAUL_SHA256_AMD64" ;; \
+        arm64|aarch64) PLATFORM="arm64"; EXPECTED_SHA="$BACKHAUL_SHA256_ARM64" ;; \
+        *) echo "Unsupported architecture: $ARCH_RAW"; exit 1 ;; \
     esac; \
     ASSET_URL="https://github.com/Musixal/Backhaul/releases/download/${BACKHAUL_VERSION}/backhaul_linux_${PLATFORM}.tar.gz"; \
     TMP_DIR="$(mktemp -d)"; \

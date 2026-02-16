@@ -75,3 +75,46 @@ async def get_status(request: Request):
         "tunnels": list(adapter_manager.active_tunnels.keys())
     }
 
+
+class LoadBalancerApply(BaseModel):
+    load_balancer_id: str
+    listen_port: int
+    algorithm: str
+    upstreams: list[Dict[str, Any]]
+
+
+class LoadBalancerRemove(BaseModel):
+    load_balancer_id: str
+
+
+@router.post("/load-balancer/apply")
+async def apply_load_balancer(data: LoadBalancerApply, request: Request):
+    """Apply load balancer configuration"""
+    load_balancer_manager = request.app.state.load_balancer_manager
+    
+    logger.info(f"Applying load balancer {data.load_balancer_id}: port={data.listen_port}, upstreams={len(data.upstreams)}")
+    try:
+        await load_balancer_manager.apply_load_balancer(
+            load_balancer_id=data.load_balancer_id,
+            listen_port=data.listen_port,
+            algorithm=data.algorithm,
+            upstreams=data.upstreams
+        )
+        logger.info(f"Load balancer {data.load_balancer_id} applied successfully")
+        return {"status": "success", "message": "Load balancer applied"}
+    except Exception as e:
+        logger.error(f"Failed to apply load balancer {data.load_balancer_id}: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/load-balancer/remove")
+async def remove_load_balancer(data: LoadBalancerRemove, request: Request):
+    """Remove load balancer"""
+    load_balancer_manager = request.app.state.load_balancer_manager
+    
+    try:
+        await load_balancer_manager.remove_load_balancer(data.load_balancer_id)
+        return {"status": "success", "message": "Load balancer removed"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+

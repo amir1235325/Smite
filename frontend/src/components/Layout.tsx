@@ -1,6 +1,6 @@
 import { ReactNode, useState, useEffect } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
-import { LayoutDashboard, Network, FileText, Activity, Moon, Sun, Github, Menu, X, LogOut, Settings, Heart, Globe, Languages } from 'lucide-react'
+import { LayoutDashboard, Network, FileText, Activity, Moon, Sun, Github, Menu, X, LogOut, Settings, Heart, Globe, Languages, Scale } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext'
 import { useLanguage } from '../contexts/LanguageContext'
 import SmiteLogoDark from '../assets/SmiteD.png'
@@ -53,6 +53,7 @@ const Layout = ({ children }: LayoutProps) => {
     { path: '/nodes', label: t.navigation.nodes, icon: Network },
     { path: '/servers', label: t.navigation.servers, icon: Globe },
     { path: '/tunnels', label: t.navigation.tunnels, icon: Activity },
+    { path: '/load-balancers', label: t.navigation.loadBalancers, icon: Scale },
     { path: '/core-health', label: t.navigation.coreHealth, icon: Heart },
     { path: '/logs', label: t.navigation.logs, icon: FileText },
     { path: '/settings', label: t.navigation.settings, icon: Settings },

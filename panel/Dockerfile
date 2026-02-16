@@ -10,11 +10,13 @@ RUN apt-get update && apt-get install -y \
 
 # Stage: Install FRP binaries
 FROM base AS frp-bin
+ARG TARGETPLATFORM
+ARG BUILDPLATFORM
 RUN set -eux; \
-    ARCH_RAW="$(uname -m)"; \
+    ARCH_RAW="$(echo ${TARGETPLATFORM} | cut -d'/' -f2)"; \
     case "$ARCH_RAW" in \
-        x86_64) ARCH="amd64" ;; \
-        aarch64) ARCH="arm64" ;; \
+        amd64|x86_64) ARCH="amd64" ;; \
+        arm64|aarch64) ARCH="arm64" ;; \
         *) ARCH="amd64" ;; \
     esac; \
     echo "Fetching FRP release"; \

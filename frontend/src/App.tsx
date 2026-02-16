@@ -8,6 +8,7 @@ import Dashboard from './pages/Dashboard'
 import Nodes from './pages/Nodes'
 import Servers from './pages/Servers'
 import Tunnels from './pages/Tunnels'
+import LoadBalancers from './pages/LoadBalancers'
 import Logs from './pages/Logs'
 import CoreHealth from './pages/CoreHealth'
 import Settings from './pages/Settings'
@@ -96,6 +97,16 @@ const AppRoutes = () => {
           <ProtectedRoute>
             <Layout>
               <Tunnels />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/load-balancers"
+        element={
+          <ProtectedRoute>
+            <Layout>
+              <LoadBalancers />
             </Layout>
           </ProtectedRoute>
         }

@@ -84,3 +84,18 @@ class Settings(Base):
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
+
+class LoadBalancer(Base):
+    __tablename__ = "load_balancers"
+    
+    id = Column(String, primary_key=True, default=generate_uuid)
+    name = Column(String, nullable=False)
+    iran_node_id = Column(String, nullable=False)  # Iran node where load balancer runs
+    tunnel_ids = Column(JSON, nullable=False)  # List of tunnel IDs to balance
+    listen_port = Column(Integer, nullable=False)
+    algorithm = Column(String, default="round_robin")  # round_robin, least_conn
+    status = Column(String, default="pending")
+    error_message = Column(Text, nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
