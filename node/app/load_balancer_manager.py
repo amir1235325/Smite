@@ -38,31 +38,42 @@ class LoadBalancerManager:
         else:
             logger.debug(f"Nginx found at {nginx_path}")
     
+    def _nginx_supports_stream(self) -> bool:
+        try:
+            result = subprocess.run(
+                ["nginx", "-V"],
+                capture_output=True,
+                text=True,
+                timeout=5
+            )
+            out = (result.stdout or "") + (result.stderr or "")
+            return "stream" in out.lower() or "with-stream" in out.lower()
+        except (FileNotFoundError, subprocess.TimeoutExpired):
+            return False
+
     def _setup_nginx_config(self):
         """Setup main nginx config to include stream module"""
         nginx_conf = self.nginx_config_dir / "nginx.conf"
-        
-        # Check if stream module is already configured
+        if not self._nginx_supports_stream():
+            raise RuntimeError(
+                "Nginx is not built with stream module. Use the official Smite node Docker image "
+                "or install nginx with stream support (e.g. apt install nginx on Debian/Ubuntu)."
+            )
         if nginx_conf.exists():
             with open(nginx_conf, "r") as f:
                 content = f.read()
                 if "stream {" in content:
                     logger.debug("Nginx stream module already configured")
                     return
-        
-        # Create or update nginx.conf to include stream module
         stream_config = """
 stream {
     include /etc/nginx/stream.d/*.conf;
 }
 """
-        
         if nginx_conf.exists():
-            # Append stream config
             with open(nginx_conf, "a") as f:
-                f.write(stream_config)
+                f.write("\n" + stream_config)
         else:
-            # Create basic nginx.conf
             basic_config = f"""
 events {{
     worker_connections 1024;
@@ -72,7 +83,6 @@ events {{
 """
             with open(nginx_conf, "w") as f:
                 f.write(basic_config)
-        
         logger.info("Nginx stream module configured")
     
     def _generate_upstream_config(self, upstreams: List[Dict[str, Any]], algorithm: str) -> str:

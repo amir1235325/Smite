@@ -130,6 +130,8 @@ RUN --mount=type=cache,target=/root/.cache/pip \
 FROM base
 WORKDIR /app
 
+RUN apt-get update && apt-get install -y --no-install-recommends nginx && rm -rf /var/lib/apt/lists/*
+
 ARG SMITE_VERSION=latest
 LABEL org.opencontainers.image.version="${SMITE_VERSION}"
 LABEL smite.version="${SMITE_VERSION}"

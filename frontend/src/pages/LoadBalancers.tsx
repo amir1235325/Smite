@@ -165,7 +165,7 @@ const LoadBalancers = () => {
 
   const getAvailableTunnels = () => {
     if (!formData.iran_node_id) return []
-    return tunnels.filter((tunnel) => tunnel.iran_node_id === formData.iran_node_id)
+    return tunnels.filter((tunnel) => tunnel.iran_node_id && tunnel.iran_node_id !== formData.iran_node_id)
   }
 
   if (loading) {
@@ -333,7 +333,7 @@ const LoadBalancers = () => {
                 <div className="border border-gray-300 dark:border-gray-600 rounded-lg p-3 max-h-48 overflow-y-auto">
                   {getAvailableTunnels().length === 0 ? (
                     <p className="text-gray-500 dark:text-gray-400 text-sm">
-                      {formData.iran_node_id ? t.loadBalancers.noTunnels : t.loadBalancers.selectIranNodeFirst}
+                      {formData.iran_node_id ? t.loadBalancers.noTunnelsOnOtherNodes : t.loadBalancers.selectIranNodeFirst}
                     </p>
                   ) : (
                     getAvailableTunnels().map((tunnel) => (
